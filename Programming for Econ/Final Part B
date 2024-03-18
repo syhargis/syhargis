@@ -1,0 +1,226 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Apr 25 10:52:56 2023
+
+@author: syhargis
+"""
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import os
+import seaborn as sns
+os.chdir('/Users/syhargis/Desktop/python')
+from functions_albert import gini
+import scipy as sp
+
+#### Section B ####
+
+####### B1
+"""
+Cake Eating Problem: Consider the problem of a person with x0 units of cake that they are thinking
+about eating. The trouble is, they have concave preferences over their cake consumption in each pe-
+riod, so they want to ensure that they don’t eat it all at once. In particular, assume that they have CRRA
+preferences u(c) = c1−σ/(1 − σ), for σ = 2.5 and that they discount the future at a rate β. We’ll assume
+that they have access to a flawless refrigeration technology, so the cake does not spoil if they save some
+for the next day. Moreover, they have a special deal with the bakery: every day, the baker gives them
+one new unit of cake for free (so they will never run out).
+"""
+
+
+### a
+
+"""
+SEE IMAGE 
+
+we can treat the infinite horizon case as the finite horizon case because Beta is less than 1. 
+This means that as we look down the infinite horizon the utility for saving for the T'th period 
+(if T is infinity) is reduced by a factor of B^T, which is basically zero. So we can use backwards
+induction to solve it. 
+
+I can understand how this problem is supposed to be solved theoretically, but when 
+it comes to acctually coding into the 
+
+"""
+
+### b
+
+
+
+# This was pulled from my groups problem set 7,1 
+
+
+delta = 0.05
+sigma = 2.5
+nu = 2          # weird lower case v
+alpha = 1/3
+A = 1
+phi = 1         # weird circle with a vertical line going through it
+
+
+
+params = (beta, delta, sigma, nu, alpha, A)
+
+def u(c):
+    
+    return (c**(1-sigma))/(1-sigma)
+
+def u_int(c):
+        return (c**(1-sigma))/(1-sigma) 
+
+def u_int2(c):
+    if c < 0:
+        return 0
+    else:
+        return (c**(1-sigma))/(1-sigma) 
+    
+    
+
+len_xgrid = 50
+
+def cgrid(len_xgrid): 
+    count = 0 
+    c = []
+    xgrid = np.linspace(10e-4, 10, len_xgrid+1)
+    for i in range(len(xgrid)-1):
+        c.append(1 + xgrid[i] - xgrid[i+1])
+    return c
+
+def V(len_xgrid = 50, beta = beta):
+    c = cgrid(len_xgrid)
+    path = []
+    index = []
+    
+    for i, j in enumerate(c):
+        path. append ( (beta**i)*u(j))
+        index.append(int(i))
+    
+    return np.column_stack((index,path))
+
+# This version does not return the index coulmn
+def V_new(len_xgrid = 50, beta = beta):
+    c = cgrid(len_xgrid)
+    path = []
+    index = []
+    
+    for i, j in enumerate(c):
+        path. append ( (beta**i)*u(j))
+        index.append(int(i))
+    
+    return path
+
+"""
+One thing I am confused about in this problem is that it looks like c[t]
+is a spesific number solved from c[t] = 1 + x[t] - x[t+1] rather than a number 
+that a consumer can choose. In other words, I am solving for c and not optimizing 
+the function by chosing the best c
+
+"""
+V()
+
+V_09 = V(beta = 0.9)
+
+V_095 =  V(beta = 0.95)
+
+V_099 =  V(beta = 0.99)
+
+index = pd.Series(np.linspace(0,49,50), name = 'index')
+
+sV09 = pd.Series(V_09[:,1],name = 'V09')
+
+sV095 = pd.Series(V_095[:,1],name = 'V095')
+
+sV099 = pd.Series(V_099[:,1],name = 'V099')
+
+data = pd.concat([index, sV09,sV095,sV099], axis = 1)
+
+fig, ax = plt.subplots()
+fig1 = sns.lineplot(x = 'index' , y = 'V09', data=data)
+fig2 = sns.lineplot(x = 'index' , y = 'V095', data=data)
+fig3 = sns.lineplot(x = 'index' , y = 'V099', data=data)
+plt.title('Cake Consumption')
+plt.ylabel('Consumption')
+plt.xlabel('Cake')
+plt.show()
+
+"""
+As the Beta increases closer to 1 the utility of consuming a cake tomorrow becomes 
+closer to the utility of consuming a cake today so the graph becomes more linear 
+
+"""
+
+### c
+
+"""
+The darivative of u(c) is u'(c) = c**(-sigma)
+"""
+
+def u_prime(c):
+    return c**(-sigma)
+
+def u_prime_grid(len_xgrid = 50, beta = beta):
+    c = cgrid(len_xgrid+1)
+    path = []
+    for i in range(len(c)-1):
+        path.append((beta**i)*(u_prime(c[i])/u_prime(c[i+1])))
+    return path 
+
+
+U_over_U_09 = pd.Series(u_prime_grid(beta = 0.9), name = 'u/u_09')
+
+U_over_U_095 = pd.Series(u_prime_grid(beta = 0.95), name = 'u/u_095')
+
+U_over_U_099 = pd.Series(u_prime_grid(beta = 0.99), name = 'u/u_099')
+
+data = pd.concat([index, sV09,sV095,sV099, U_over_U_09, U_over_U_095, U_over_U_099], axis = 1)
+
+fig, ax = plt.subplots()
+fig1 = sns.lineplot(x = 'index' , y = 'u/u_09', data=data)
+fig2 = sns.lineplot(x = 'index' , y = 'u/u_095', data=data)
+fig3 = sns.lineplot(x = 'index' , y = 'u/u_099', data=data)
+plt.title('u`(c)/u`(c+1)')
+plt.ylabel('Consumption')
+plt.xlabel('Cake')
+plt.show()
+
+"""
+The graph shows three lines for each of the betas. As the betas the approach 1,
+ the more linear it becomes. If the beta was 1 then their would be no difference 
+ between eating a cake now and eating a cake tomorrow and so it would make more 
+ sence to save 
+ 
+ """
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
