@@ -1,0 +1,169 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Apr 24 9:31:08 2023
+
+@author: s2472259
+
+Exam No.: B234675
+"""
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import os
+import seaborn as sns
+os.chdir('/Users/syhargis/Desktop/python')
+from functions_albert import gini
+import scipy as sp
+
+
+
+import warnings
+warnings.filterwarnings('ignore')  #sns warning disactivated
+
+data = pd.read_excel("/Users/syhargis/Desktop/python/UNPS_1112_PS2(2).xls")
+
+
+########### A1 ###########
+
+### a
+"""
+a. Compute the consumption and income at the per capita level by dividing the household con-
+sumption and income by the number of members in the household. Report the mean and the
+Gini index of the consumption and income at the household level and at the per capita level. 
+"""
+
+data['per_cap_inc'] = data['income']/data['familysize'] 
+data['per_cap_cons'] = data['consumption']/data['familysize'] 
+                                            
+indis = data[['per_cap_cons','per_cap_inc']]
+# This .dropna function took me way to long to figure out and even longer to 
+# figure that the nans messed with the gini                         
+indis = indis.dropna(axis=0) 
+
+gini_house = data[['consumption','income']].apply(gini)
+gini_indi = indis[['per_cap_inc', 'per_cap_cons']].apply(gini)
+
+print(gini_house)
+print(gini_indi)
+
+
+print(
+data[['consumption','income']].describe(),)
+print("")
+
+print(data[['per_cap_cons','per_cap_inc']].describe())
+
+
+print("""
+      
+      """
+      )
+
+
+
+
+
+### b
+"""
+b. Create a categorical variable that describes the main occupation of the household: farmer, en-
+trepreneur, or worker. To do so, consider that a household is “farmer” if agricultural income is
+more than 50% of the household income, an “entrepreneur” if business income is more than 50%
+of the household total income, and “worker” if labour income is more than 50% of the household
+total income. 
+"""
+
+data['farm_ratio'] = data['agriculture_inc']/data['income']
+data['business_ratio'] = data['business_inc']/data['income']
+data['work_ratio'] = data['wage_labor']/data['income']
+
+data['farmer'] = 0
+data['sigma_grider'] = 0
+data['worker'] = 0
+
+data.loc[data['farm_ratio']>0.500000, 'farmer'] = 1
+data.loc[data['business_ratio']>0.500000, 'sigma_grider'] = 1
+data.loc[data['work_ratio']>0.500000, 'worker'] = 1
+
+data['occupation'] = 'other'
+data.loc[data['farm_ratio']>0.500000, 'occupation'] = 'farmer'
+data.loc[data['business_ratio']>0.500000, 'occupation'] = 'entrepreneur'
+data.loc[data['work_ratio']>0.500000, 'occupation'] = 'worker'
+
+data[['consumption','income']].describe()
+print( data[['consumption','income', 'occupation']].groupby(by='occupation').describe())
+
+rural = data[data['urban'] == 0]
+
+urban = data[data['urban'] == 1]
+
+print(rural[['consumption','income', 'occupation']].groupby(by='occupation').describe())
+
+print(urban[['consumption','income', 'occupation']].groupby(by='occupation').describe())
+
+
+print(data[['consumption','income', 'urban']].groupby(by='urban').describe())
+
+
+
+
+
+
+
+### c
+"""
+Plot the life-cycle of the log of consumption at the household level across occupational groups.
+Plot the life-cycle of the log of consumption at the per capita level across occupational groups.
+"""
+
+# This was taken from our groups code 
+# Drop extreme values (too few observations to get means within age)
+data = data[data['head_age'] < 80]
+data = data[data['head_age'] > 18]
+
+#To smooth the lines, group the ages in bins
+bins = [18, 30, 40, 50, 60, 80]
+labels = [25, 35, 45, 55, 70]
+data['age_bins'] = pd.cut(data['head_age'],bins=bins, labels=labels)
+
+
+
+# Consumption Household Lifecycle
+fig, ax = plt.subplots()
+fig1 = sns.lineplot('age_bins', 'consumption', hue='occupation', data=data)
+plt.title('Household Consumption Lifecycle in Uganda by occupation')
+plt.ylabel('Consumption')
+plt.xlabel('Age')
+plt.show()
+
+# Income Household Lifecycle
+fig, ax = plt.subplots()
+fig1 = sns.lineplot('age_bins', 'income', hue='occupation', data=data)
+plt.title('Household Income Lifecycle in Uganda by occupation')
+plt.ylabel('Income')
+plt.xlabel('Age')
+plt.show()
+
+# Consumption Individual Lifecycle
+fig, ax = plt.subplots()
+fig1 = sns.lineplot('age_bins', 'per_cap_cons', hue='occupation', data=data)
+plt.title('Per Capita Consumption Lifecycle in Uganda by occupation')
+plt.ylabel('Per Capita Consumption')
+plt.xlabel('Age')
+plt.show()
+
+# Income Individual Lifecycle
+fig, ax = plt.subplots()
+fig1 = sns.lineplot('age_bins', 'per_cap_inc', hue='occupation', data=data)
+plt.title('Per Capita Income Lifecycle in Uganda by occupation')
+plt.ylabel('Per Capita Income')
+plt.xlabel('Age')
+plt.show()
+
+"""
+The data for the individual life cycles are probably wrong because we are going 
+by the head of households age and not the ages of every individual in the house 
+thats probably why we see a steep fall from age 30 to 40 and a general decline 
+from there
+"""
